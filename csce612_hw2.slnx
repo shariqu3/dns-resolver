@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="csce612_hw2/csce612_hw2.vcxproj" Id="f0f929a5-fce6-448d-91fa-a6c756ec4ba0" />
+</Solution>
