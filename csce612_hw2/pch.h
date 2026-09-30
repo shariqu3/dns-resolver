@@ -8,5 +8,17 @@
 #define PCH_H
 
 // add headers that you want to pre-compile here
+#include <stdio.h>
+#include <Windows.h>
+#include <stdarg.h>
+#include <iostream>
+#include <chrono>
+#include <string>
+
+#include "winsock.h"
+#include "util.h"
+
+#pragma comment(lib, "ws2_32.lib")
+
 
 #endif //PCH_H
