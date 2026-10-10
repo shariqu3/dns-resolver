@@ -22,3 +22,4 @@ public:
 
 
 void WSAInit();
+void ThrowWSAError(const char* msg);

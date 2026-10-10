@@ -38,6 +38,16 @@
 #include <iostream>
 #include <string>
 
+/* DNS query types */
+#define DNS_A 1 /* name -> IP */
+#define DNS_NS 2 /* name server */
+#define DNS_CNAME 5 /* canonical name */
+#define DNS_PTR 12 /* IP -> name */
+#define DNS_HINFO 13 /* host info/SOA */
+#define DNS_MX 15 /* mail exchange */
+#define DNS_AXFR 252 /* request for zone transfer */
+#define DNS_ANY 255 /* all records */
+
 
 int main(int argc, char* argv[])
 {
@@ -51,15 +61,18 @@ int main(int argc, char* argv[])
     try {
 		WSAInit();
         char* server = argv[2];
+
 		// 2. Deciding if Reverse Query or not
         bool is_ip = IsIP(argv[1]);
 
 		// 3. Build Query
-        char* query = GenerateQuery(argv[1], argv[2], is_ip ? 12 : 1, is_ip);
+        char* res= AskDnsQuery(argv[1], argv[2], is_ip ? DNS_PTR: DNS_A, is_ip);
 		printf("Server : %s\n", server);
 
 		// 4. Make the request, get response
         printf("********************************\n");
+        //char * res = UDPCall(query, server);
+
 		// 5. Parse response
         WSACleanup();
     }
