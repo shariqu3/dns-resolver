@@ -17,8 +17,9 @@
 
 #include "winsock.h"
 #include "util.h"
+#include "dns.h"
+#include "test.h"
 
 #pragma comment(lib, "ws2_32.lib")
-
 
 #endif //PCH_H

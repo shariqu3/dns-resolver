@@ -4,16 +4,16 @@
 // TODO:
 // [x] Decide on the code-flow
 // [x] Handle incorrect input
-// [ ] Query types
-// [ ] Build Query Constructor
+// [x] Query types
+// [x] Build Query Constructor
 // [ ] Build UDP socket mgmt
 // [ ] Build Response parser
 // [ ] Add retransmission on failures with 10s timeout
 // [ ] Print output
-//      [ ] Lookup : randomA.irl 
-//	    [ ] Query : randomA.irl, type 1, TXID 0x8601
-//	    [ ] Server : 128.194.135.82
-//      [ ] 
+//      [x] Lookup : randomA.irl 
+//	    [x] Query : randomA.irl, type 1, TXID 0x8601
+//	    [x] Server : 128.194.135.82
+//      [x] 
 //      [ ] Attempt 0 with 26 bytes... response in 1670 ms with 101 bytes
 //      [ ] TXID 0xC101 flags 8183 questions 1 answers 0 authority 1 additional 0
 //      [ ] failed with Rcode = 3
@@ -36,17 +36,8 @@
 
 #include "pch.h"
 #include <iostream>
+#include <string>
 
-char* GenerateQuery(char* target, char* server, int type, bool reverse_lookup=false)
-{
-     
-}
-
-bool IsIP(char* query)
-{
-    unsigned long ret = inet_addr(query);
-    return ret == INADDR_NONE ? false : true;
-}
 
 int main(int argc, char* argv[])
 {
@@ -59,13 +50,16 @@ int main(int argc, char* argv[])
     }
     try {
 		WSAInit();
-
+        char* server = argv[2];
 		// 2. Deciding if Reverse Query or not
         bool is_ip = IsIP(argv[1]);
 
 		// 3. Build Query
-        char* query = GenerateQuery(argv[1], argv[2], is_ip?12:1, is_ip);
+        char* query = GenerateQuery(argv[1], argv[2], is_ip ? 12 : 1, is_ip);
+		printf("Server : %s\n", server);
+
 		// 4. Make the request, get response
+        printf("********************************\n");
 		// 5. Parse response
         WSACleanup();
     }

@@ -20,4 +20,5 @@ public:
 	virtual void Close();
 };
 
+
 void WSAInit();
