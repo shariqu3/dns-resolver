@@ -23,7 +23,6 @@ struct QueryHeader
 {
     u_short type;
     u_short query_class;
-    QueryHeader(u_short _type, u_short _query_class): type(_type), query_class(_query_class){}
 };
 
 struct FixedDNSHeader 
@@ -34,12 +33,16 @@ struct FixedDNSHeader
     u_short n_answers=0;
     u_short n_authority=0;
     u_short n_additional=0;
-
-    FixedDNSHeader();
-    FixedDNSHeader(char* res);
-
+};
+struct DNSAnswerHeader{
+u_short type;
+u_short res_class;
+u_int ttl;
+u_short len;
 };
 #pragma pack(pop)
 
 bool IsIP(char* query);
-char* UDPCall(char* msg, int pkt_size, char* server);
+char* UDPCall(char* msg, int pkt_size, char* server, int &res_size);
+void DNSResponseParser(unsigned char* res, int pkt_size);
+unsigned char* PrintResourceRecord(unsigned char* ptr);

@@ -61,24 +61,112 @@ char* AskDnsQuery(char* host, char* server, int type, bool reverse_lookup)
 
     printf("Lookup : %s\n", host);
     printf("Query  : %s, type %d, TXID 0x%04X\n", s.c_str(), ntohs(query_header->type), ntohs(dns_header->TXID));
+	printf("Server : %s\n", server);
+	printf("********************************\n");
 	MakeDNSQuestion((char *)(dns_header + 1), s);
-	char * res = UDPCall(packet, pkt_size, server);
+	int res_size;
+	char * res = UDPCall(packet, pkt_size, server, res_size);
+	DNSResponseParser((unsigned char *)res, res_size);
 	delete[] packet;
     return res;
 }
 
-char* UDPCall(char* msg, int pkt_size, char *server)
+void DNSResponseParser(unsigned char* res, int pkt_size)
+{		
+	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
+	unsigned char* ptr = res;
+	printf("\tTXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
+	int rcode = ntohs(res_header->flags) % 16;
+	if (!rcode)
+		printf("\tsucceeded with Rcode = %d\n", rcode);
+	else
+	{
+		printf("\tfailed with Rcode = %d", rcode);
+		exit(1);
+	}		
+
+	int itr = ntohs(res_header->n_questions);
+	if (itr)
+	{
+		printf("------------ [questions] ----------\n");
+		while (itr--)
+		{
+			// 19.138.194.128.in-addr.arpa type 12 class 1
+			ptr = PrintResourceRecord((unsigned char *) (ptr + sizeof(FixedDNSHeader)));
+		}
+	}
+
+	// parse answers 
+	itr = ntohs(res_header->n_answers);
+	if (itr)
+	{
+		printf("------------ [answers] ------------");
+		while (itr--)
+		{
+		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
+		}
+	}
+	// parse authority
+	// parse additional 
+
+	printf("------------ [authority] ----------");
+		//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
+	printf("------------ [additional] ----------");
+		//ns1.tamu.edu A 128.194.254.4 TTL = 28800
+}
+
+unsigned char *PrintResourceRecord(unsigned char* ptr)
+{
+	// check compress
+	int cont_offset = -1;
+	int cur_pos = 0;
+	bool first_name = true;
+	while (ptr[cur_pos] != 0)
+	{
+		if (ptr[cur_pos] >= 0xC0)
+		{
+			if (cont_offset == -1)
+				cont_offset = cur_pos + 1;
+			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
+			cur_pos = off;
+		}
+		else
+		{
+			int len = ptr[cur_pos];
+			unsigned char cpy = ptr[cur_pos + len+1];
+			ptr[cur_pos + len+1] = '\0';
+			if(first_name)
+				printf("%s", ptr+cur_pos);
+			else
+				printf(".%s", ptr+cur_pos);
+			ptr[cur_pos + len+1] = cpy;
+			cur_pos += len+1;
+			first_name = false;
+		}
+	}
+	cur_pos++;
+	if (cont_offset != -1)
+		cur_pos = cont_offset;
+	DNSAnswerHeader *ans_header = (DNSAnswerHeader*)(ptr + cur_pos);
+	printf(" type %u class %u\n", ntohs(ans_header->type), ntohs(ans_header->res_class));
+	return ptr + cur_pos + sizeof(DNSAnswerHeader);
+}
+
+
+char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 {
     char* res = new char [MAX_DNS_LEN+1];
 	int count = 0;
 	int MAX_ATTEMPTS = 3;
+	SOCKET sock = socket (AF_INET, SOCK_DGRAM, 0);
+	if (sock == INVALID_SOCKET)
+		ThrowWSAError("WSA error in assigning socket");
+
     while (count++ < MAX_ATTEMPTS)
 	{
+		printf("Attempt %d with %d bytes... ", count-1, pkt_size);
+		Timer t;
 		// send request to the server
-		SOCKET sock = socket (AF_INET, SOCK_DGRAM, 0);
-		if (sock == INVALID_SOCKET)
-			ThrowWSAError("WSA error in assigning socket");
-
 		struct sockaddr_in local;
 		memset(&local, 0, sizeof(local));
 		local.sin_family = AF_INET;
@@ -105,37 +193,28 @@ char* UDPCall(char* msg, int pkt_size, char *server)
 		{
 			sockaddr from;
 			int from_len = sizeof(from);
-			//TODO: Do something with the returned from field
+			// TODO: Do something with the returned from field
 			int bytes = recvfrom(sock, res, MAX_DNS_LEN, 0, &from, &from_len);
+			res_size = bytes;
 			if (bytes == SOCKET_ERROR)
 				ThrowWSAError("WSA error in recvfrom");
 			if (bytes > MAX_DNS_LEN)
 				throw std::runtime_error("exceeding MAX_DNS_LEN on response");
-
 			res[bytes] = 0;
-
+			printf("response in %ld ms with %d bytes\n", t.Elapsed(), bytes);
+			break;
 		}
 		else if (available == 0)
 		{
+			printf("timeout in 10000ms\n");
 			if (count == MAX_ATTEMPTS)
 				throw std::runtime_error("out of attempts");
 		}
 		else
 			ThrowWSAError("WSA error in select");
-		closesocket(sock);
 	}
+	closesocket(sock);
 	return res;
-}
-
-FixedDNSHeader::FixedDNSHeader()
-{ 
-	TXID = rand();
-	flags |=  1 << 8;
-	n_questions = htons(1);
-}
-
-FixedDNSHeader::FixedDNSHeader(char* res){
-	// parse response into the header
 }
 
 bool IsIP(char* query)

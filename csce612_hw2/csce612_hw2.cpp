@@ -6,9 +6,10 @@
 // [x] Handle incorrect input
 // [x] Query types
 // [x] Build Query Constructor
-// [ ] Build UDP socket mgmt
+// [x] Build UDP socket mgmt
 // [ ] Build Response parser
-// [ ] Add retransmission on failures with 10s timeout
+// [ ] Build Response validator
+// [x] Add retransmission on failures with 10s timeout
 // [ ] Print output
 //      [x] Lookup : randomA.irl 
 //	    [x] Query : randomA.irl, type 1, TXID 0x8601
@@ -67,11 +68,6 @@ int main(int argc, char* argv[])
 
 		// 3. Build Query
         char* res= AskDnsQuery(argv[1], argv[2], is_ip ? DNS_PTR: DNS_A, is_ip);
-		printf("Server : %s\n", server);
-
-		// 4. Make the request, get response
-        printf("********************************\n");
-        //char * res = UDPCall(query, server);
 
 		// 5. Parse response
         WSACleanup();
