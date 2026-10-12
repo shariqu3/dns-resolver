@@ -8,6 +8,10 @@
 // [x] Build Query Constructor
 // [x] Build UDP socket mgmt
 // [ ] Build Response parser
+//      [x] DNS_A 1 /* name -> IP */
+//      [ ] DNS_NS 2 /* name server */
+//      [ ] DNS_CNAME 5 /* canonical name */
+//      [ ] DNS_PTR 12 /* IP -> name */
 // [ ] Build Response validator
 // [x] Add retransmission on failures with 10s timeout
 // [ ] Print output
@@ -38,17 +42,6 @@
 #include "pch.h"
 #include <iostream>
 #include <string>
-
-/* DNS query types */
-#define DNS_A 1 /* name -> IP */
-#define DNS_NS 2 /* name server */
-#define DNS_CNAME 5 /* canonical name */
-#define DNS_PTR 12 /* IP -> name */
-#define DNS_HINFO 13 /* host info/SOA */
-#define DNS_MX 15 /* mail exchange */
-#define DNS_AXFR 252 /* request for zone transfer */
-#define DNS_ANY 255 /* all records */
-
 
 int main(int argc, char* argv[])
 {

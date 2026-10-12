@@ -1,8 +1,33 @@
 #pragma once
 #include <string>
 #include <Windows.h>
+#include <map>
 
 #define DNS_INET 1
+
+/* DNS query types */
+#define DNS_A 1 /* name -> IP */
+#define DNS_NS 2 /* name server */
+#define DNS_MD 3 
+#define DNS_MF 4  
+#define DNS_CNAME 5 /* canonical name */
+#define DNS_PTR 12 /* IP -> name */
+#define DNS_HINFO 13 /* host info/SOA */
+#define DNS_MX 15 /* mail exchange */
+#define DNS_AXFR 252 /* request for zone transfer */
+#define DNS_ANY 255 /* all records */
+#define DNS_SOA 6 
+#define DNS_MB 7 
+#define DNS_MG 8 
+#define DNS_MR 9 
+#define DNS_NULL 10 
+#define DNS_WKS 11 
+#define DNS_PTR 12 
+#define DNS_HINFO 13 
+#define DNS_MINFO 14 
+#define DNS_MX 15 
+#define DNS_TXT 16 
+
 /* flags */
 #define DNS_QUERY (0 << 15) /* 0 = query; 1 = response */
 #define DNS_RESPONSE (1 << 15)
@@ -45,4 +70,4 @@ u_short len;
 bool IsIP(char* query);
 char* UDPCall(char* msg, int pkt_size, char* server, int &res_size);
 void DNSResponseParser(unsigned char* res, int pkt_size);
-unsigned char* PrintResourceRecord(unsigned char* ptr);
+int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question = false);

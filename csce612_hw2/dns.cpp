@@ -73,8 +73,28 @@ char* AskDnsQuery(char* host, char* server, int type, bool reverse_lookup)
 
 void DNSResponseParser(unsigned char* res, int pkt_size)
 {		
+	std::map<int, std::string> mp;
+	mp[DNS_A] = "A";
+	mp[DNS_NS] = "NS";
+	mp[DNS_CNAME] = "CNAME";
+	mp[DNS_MD] = "MD";
+	mp[DNS_MF] = "MF";
+	mp[DNS_SOA] = "SOA";
+	mp[DNS_AXFR] = "AXFR";
+	mp[DNS_ANY] = "ANY";
+	mp[DNS_MB] = "MB";
+	mp[DNS_MG] = "MG";
+	mp[DNS_MR] = "MR";
+	mp[DNS_NULL] = "NULL";
+	mp[DNS_WKS] = "WKS";
+	mp[DNS_PTR] = "PTR";
+	mp[DNS_HINFO] = "HINFO";
+	mp[DNS_MINFO] = "MINFO";
+	mp[DNS_MX] = "MX";
+	mp[DNS_TXT] = "TXT";
+
 	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
-	unsigned char* ptr = res;
+	int	cur_pos = sizeof(FixedDNSHeader);
 	printf("\tTXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
 	int rcode = ntohs(res_header->flags) % 16;
 	if (!rcode)
@@ -92,7 +112,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 		while (itr--)
 		{
 			// 19.138.194.128.in-addr.arpa type 12 class 1
-			ptr = PrintResourceRecord((unsigned char *) (ptr + sizeof(FixedDNSHeader)));
+			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, true);
 		}
 	}
 
@@ -100,33 +120,42 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	itr = ntohs(res_header->n_answers);
 	if (itr)
 	{
-		printf("------------ [answers] ------------");
+		printf("------------ [answers] ------------\n");
 		while (itr--)
 		{
 		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
+			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 		}
 	}
 	// parse authority
-	// parse additional 
+	itr = ntohs(res_header->n_answers);
+	if (itr)
+	{
+		printf("------------ [authority] ----------\n");
+			//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
+	}
 
-	printf("------------ [authority] ----------");
-		//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
-	printf("------------ [additional] ----------");
-		//ns1.tamu.edu A 128.194.254.4 TTL = 28800
+	// parse additional 
+	itr = ntohs(res_header->n_answers);
+	if (itr)
+	{
+		printf("------------ [additional] ----------\n");
+			//ns1.tamu.edu A 128.194.254.4 TTL = 28800
+	}
+	delete[] res;
 }
 
-unsigned char *PrintResourceRecord(unsigned char* ptr)
+int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question)
 {
 	// check compress
 	int cont_offset = -1;
-	int cur_pos = 0;
 	bool first_name = true;
 	while (ptr[cur_pos] != 0)
 	{
 		if (ptr[cur_pos] >= 0xC0)
 		{
 			if (cont_offset == -1)
-				cont_offset = cur_pos + 1;
+				cont_offset = cur_pos + 2;
 			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
 			cur_pos = off;
 		}
@@ -147,9 +176,34 @@ unsigned char *PrintResourceRecord(unsigned char* ptr)
 	cur_pos++;
 	if (cont_offset != -1)
 		cur_pos = cont_offset;
-	DNSAnswerHeader *ans_header = (DNSAnswerHeader*)(ptr + cur_pos);
-	printf(" type %u class %u\n", ntohs(ans_header->type), ntohs(ans_header->res_class));
-	return ptr + cur_pos + sizeof(DNSAnswerHeader);
+
+	if (question)
+	{
+		printf(" type %u class %u\n", ntohs(*((u_short*)(ptr+cur_pos))), ntohs(*((u_short*)(ptr+cur_pos+2))));
+		return cur_pos + 4;
+	}
+	else
+	{
+		DNSAnswerHeader *ans_header = (DNSAnswerHeader*)(ptr + cur_pos);
+		cur_pos += sizeof(DNSAnswerHeader);
+		switch (ntohs(ans_header->type))
+		{
+			case DNS_A:	
+				if (ntohs(ans_header->len) != 4)
+				{
+					// TODO: Check if this needs to be displayed in different format
+					throw std::runtime_error("Invalid length for type A response");
+				}
+				struct in_addr t;
+				t.s_addr = *((unsigned long*)(ptr+cur_pos));
+				printf(" type %s %s TTL = %u\n", mp[ntohs(ans_header->type)].c_str(),  inet_ntoa(t), ntohl(ans_header->ttl));
+				break;
+			default: 
+				throw std::runtime_error("Invalid type");
+				break;
+		}
+		return cur_pos + ntohs(ans_header->len);
+	}
 }
 
 
@@ -179,6 +233,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		memset(&remote, 0, sizeof(remote));
 		remote.sin_family = AF_INET;
 		remote.sin_addr.s_addr = inet_addr(server);// server’s IP
+		// TODO: Change this to 53 after tesitng locally
 		remote.sin_port = htons(53); // DNS port on server
 		if (sendto(sock, msg, pkt_size, 0, (struct sockaddr*)&remote, sizeof(remote)) == SOCKET_ERROR)
 			throw std::runtime_error("Error in sending from UDP socket");
