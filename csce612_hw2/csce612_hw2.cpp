@@ -51,6 +51,8 @@
 int main(int argc, char* argv[])
 {
     // 1. Input formatting
+    process();
+    return 1;
     if (argc != 3)
     {
         printf("Incorrect usage, correct usage:\n");

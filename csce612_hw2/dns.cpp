@@ -59,14 +59,22 @@ char* AskDnsQuery(char* host, char* server, int type, bool reverse_lookup)
     query_header->query_class = htons(DNS_INET);
     query_header->type= htons(type);
 
-    printf("Lookup : %s\n", host);
-    printf("Query  : %s, type %d, TXID 0x%04X\n", s.c_str(), ntohs(query_header->type), ntohs(dns_header->TXID));
-	printf("Server : %s\n", server);
-	printf("********************************\n");
+ //   printf("Lookup : %s\n", host);
+ //   printf("Query  : %s, type %d, TXID 0x%04X\n", s.c_str(), ntohs(query_header->type), ntohs(dns_header->TXID));
+	//printf("Server : %s\n", server);
+	//printf("********************************\n");
 	MakeDNSQuestion((char *)(dns_header + 1), s);
 	int res_size;
 	char * res = UDPCall(packet, pkt_size, server, res_size);
-	DNSResponseParser((unsigned char *)res, res_size);
+	unsigned char* itr = (unsigned char *)res;
+	for (int i = 0;i < res_size;i++)
+	{
+		if((itr[i] >='a' && itr[i] <='z') || (itr[i] >='A' && itr[i] <='X'))
+			printf("%c",  res[i]);
+		else
+			printf("%d",  int((u_short)(res[i])));
+	}
+	//DNSResponseParser((unsigned char *)res, res_size);
 	delete[] packet;
     return res;
 }
@@ -295,7 +303,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 
     while (count++ < MAX_ATTEMPTS)
 	{
-		printf("Attempt %d with %d bytes... ", count-1, pkt_size);
+		//printf("Attempt %d with %d bytes... ", count-1, pkt_size);
 		Timer t;
 		// send request to the server
 		
@@ -328,7 +336,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 			if (bytes > MAX_DNS_LEN)
 				throw std::runtime_error("exceeding MAX_DNS_LEN on response");
 			res[bytes] = 0;
-			printf("response in %ld ms with %d bytes\n", t.Elapsed(), bytes);
+			//printf("response in %ld ms with %d bytes\n", t.Elapsed(), bytes);
 			break;
 		}
 		else if (available == 0)
