@@ -22,6 +22,11 @@
 //      [x] Attempt 0 with 26 bytes... response in 1670 ms with 101 bytes
 //      [x] TXID 0xC101 flags 8183 questions 1 answers 0 authority 1 additional 0
 //      [x] failed with Rcode = 3
+// [ ] Verify code works with:
+//      [ ] random2.irl
+//      [ ] random9.irl
+//      [ ] randomA.irl
+//      [ ] randomB.irl
 
 // Report: 
 // [ ] Handle additional errors  
@@ -30,11 +35,11 @@
 //      [-] ++ invalid record: jump beyond packet boundary
 //      [-] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
 //      [-] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
-//      [ ] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
-//      [ ] ++ invalid record: jump into fixed DNS header
+//      [-] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
+//      [-] ++ invalid record: jump into fixed DNS header
 //      [ ] ++ invalid record: jump loop
 //      [-] ++ invalid record: RR value length stretches the answer beyond packet
-//      [ ] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
+//      [-] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
 
 // Extra credit:
 //  [ ] Reverse engineer algorithm used by random8.irl's response

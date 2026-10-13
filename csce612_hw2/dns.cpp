@@ -48,7 +48,7 @@ char* AskDnsQuery(char* host, char* server, int type, bool reverse_lookup)
 	int pkt_size = s.size() + 2 + sizeof(FixedDNSHeader) + sizeof(QueryHeader);
 
 	FixedDNSHeader *dns_header = (FixedDNSHeader *) packet;
-    dns_header->TXID = htons(-1);
+    dns_header->TXID = htons(TXID);
     dns_header->flags = htons(DNS_QUERY | DNS_RD | DNS_STDQUERY);
     dns_header->n_questions = htons(1);
     dns_header->n_answers=htons(0);
@@ -95,12 +95,17 @@ void DNSResponseParser(unsigned char* res, int res_size)
 
 	if (res_size < sizeof(FixedDNSHeader))
 	{
-		printf("++ invalid reply: packet smaller than fixed DNS header");
+		printf("  ++ invalid reply: packet smaller than fixed DNS header");
 		exit(1);
 	}
 	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
 	int	cur_pos = sizeof(FixedDNSHeader);
 	printf("  TXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
+	if (ntohs(res_header->TXID) != ntohs(TXID))
+	{
+		printf("  ++ invalid reply : TXID mismatch, sent 0x%04X, received 0x%04X", ntohs(TXID), ntohs(res_header->TXID));
+		exit(1);
+	}
 	int rcode = ntohs(res_header->flags) % 16;
 	if (!rcode)
 		printf("  succeeded with Rcode = %d\n", rcode);
@@ -128,7 +133,7 @@ void PrintSectionRecords(const char* section_name, int n_entries, int &cur_pos, 
 		// TODO: Check if cur_pos > res_size is handled in PrintResourceRecord
 		if (cur_pos == res_size)
 		{
-			printf("++invalid section : not enough records");
+			printf("\t++ invalid section : not enough records");
 			exit(1);
 		}
 		cur_pos = PrintResourceRecord(res, cur_pos, mp, res_size, question);
@@ -144,7 +149,7 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 	{
 		if (cur_pos + 4 > res_size)
 		{
-			printf("++ invalid record: truncated question query");
+			printf("\n++ invalid record: truncated question query");
 			exit(1);
 		}
 		printf(" type %u class %u\n", ntohs(*((u_short*)(ptr+cur_pos))), ntohs(*((u_short*)(ptr+cur_pos+2))));
@@ -154,7 +159,7 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 	{
 		if (cur_pos + sizeof(DNSAnswerHeader) > res_size)
 		{
-			printf("++ invalid record: truncated RR answer header");
+			printf("\n\t++ invalid record: truncated RR answer header");
 			exit(1);
 		}
 		DNSAnswerHeader *ans_header = (DNSAnswerHeader*)(ptr + cur_pos);
@@ -164,10 +169,15 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 			case DNS_A:	
 				if (ntohs(ans_header->len) != 4)
 				{
-					printf("++ invalid record: type A record length is not 4");
+					printf("\n\t++ invalid record: type A record length is not 4");
 					exit(1);
 				}
 				struct in_addr t;
+				if (cur_pos + 4 >= res_size)
+				{
+					printf("\n\t++ invalid record: truncated RR answer data");
+					exit(1);
+				}
 				t.s_addr = *((unsigned long*)(ptr+cur_pos));
 				printf(" %s %s TTL = %u\n", mp[ntohs(ans_header->type)].c_str(),  inet_ntoa(t), ntohl(ans_header->ttl));
 				break;
@@ -175,6 +185,7 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 			case DNS_NS:
 			case DNS_PTR:
 				printf(" %s ", mp[ntohs(ans_header->type)].c_str());
+				// TODO: Check this
 				PrintDomainName(ptr, cur_pos, res_size);
 				printf(" TTL = % u\n", ntohl(ans_header->ttl));
 				break;
@@ -195,13 +206,23 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 	{
 		if (ptr[cur_pos] >= 0xC0)
 		{
+			if (cur_pos == res_size - 1)
+			{
+				printf("\n\t++ invalid record: truncated jump offset");
+				exit(1);
+			}
 			if (cont_offset == -1)
 				cont_offset = cur_pos + 2;
 			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
 			cur_pos = off;
 			if (cur_pos >= res_size)
 			{
-				printf("++ invalid record: jump beyond packet boundary");
+				printf("\n\t++ invalid record: jump beyond packet boundary");
+				exit(1);
+			}
+			else if (cur_pos < sizeof(FixedDNSHeader))
+			{
+				printf("\n\t++ invalid record: jump into fixed DNS header");
 				exit(1);
 			}
 		}
@@ -210,6 +231,16 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 			int len = ptr[cur_pos];
 			if (cur_pos + len >= res_size)
 			{
+				if (cur_pos != res_size - 1)
+				{
+					if (!first_name)
+						printf(".");
+					printf("%s", ptr + cur_pos+1);
+				}
+				if (!first_name || cur_pos != res_size - 1)
+				{
+					printf("\n\t");
+				}
 				printf("++ invalid record: truncated name");
 				exit(1);
 			}
@@ -223,6 +254,11 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 			cur_pos += len+1;
 			first_name = false;
 		}
+	}
+	if (cur_pos == res_size)
+	{
+		printf("\n\t++ invalid record: truncated name");
+		exit(1);
 	}
 	cur_pos++;
 	if (cont_offset != -1)
@@ -273,7 +309,6 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		{
 			sockaddr_in from;
 			int from_len = sizeof(from);
-			// TODO: Do something with the returned from field
 			int bytes = recvfrom(sock, res, MAX_DNS_LEN, 0, (sockaddr *) & from, &from_len);
 			//printf("From address: %s Remote address: %s\n", inet_ntoa(from.sin_addr), inet_ntoa(remote.sin_addr));
 			if (from.sin_addr.s_addr != remote.sin_addr.s_addr)
