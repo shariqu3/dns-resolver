@@ -22,11 +22,11 @@
 //      [x] Attempt 0 with 26 bytes... response in 1670 ms with 101 bytes
 //      [x] TXID 0xC101 flags 8183 questions 1 answers 0 authority 1 additional 0
 //      [x] failed with Rcode = 3
-// [ ] Verify code works with:
-//      [ ] random2.irl
-//      [ ] random9.irl
-//      [ ] randomA.irl
-//      [ ] randomB.irl
+// [+] Verify code works with:
+//      [+] random2.irl
+//      [+] random9.irl
+//      [+] randomA.irl
+//      [+] randomB.irl
 
 // Report: 
 // [ ] Handle additional errors  

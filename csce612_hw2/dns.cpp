@@ -218,7 +218,9 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 			cur_pos = off;
 			if (cur_pos >= res_size)
 			{
-				printf("\n\t++ invalid record: jump beyond packet boundary");
+				if (!first_name)
+					printf("\n\t");
+				printf("++ invalid record: jump beyond packet boundary");
 				exit(1);
 			}
 			else if (cur_pos < sizeof(FixedDNSHeader))
