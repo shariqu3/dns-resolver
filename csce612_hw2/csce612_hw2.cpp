@@ -12,7 +12,7 @@
 //      [x] DNS_NS 2 /* name server */
 //      [x] DNS_CNAME 5 /* canonical name */
 //      [x] DNS_PTR 12 /* IP -> name */
-// [ ] Build Response validator
+// [+] Build Response validator
 // [x] Add retransmission on failures with 10s timeout
 // [x] Print output
 //      [x] Lookup : randomA.irl 
@@ -29,16 +29,16 @@
 //      [+] randomB.irl
 
 // Report: 
-// [ ] Handle additional errors  
+// [+] Handle additional errors  
 //      [+] ++ invalid reply: packet smaller than fixed DNS header
 //      [+] ++ invalid section: not enough records (e.g., declared 5 answers but only 3 found)
 //      [-] ++ invalid record: jump beyond packet boundary
 //      [+] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
 //      [+] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
-//      [-] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
+//      [+] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
 //      [+] ++ invalid record: jump into fixed DNS header
-//      [-] ++ invalid record: jump loop
-//      [-] ++ invalid record: RR value length stretches the answer beyond packet
+//      [+] ++ invalid record: jump loop
+//      [+] ++ invalid record: RR value length stretches the answer beyond packet
 //      [+] ++ invalid reply: TXID mismatch sent 0xABCD received 0xPQRS
 
 // Extra credit:

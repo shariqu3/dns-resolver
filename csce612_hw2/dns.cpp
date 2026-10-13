@@ -173,9 +173,9 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 					exit(1);
 				}
 				struct in_addr t;
-				if (cur_pos + 4 >= res_size)
+				if (cur_pos + 4 > res_size)
 				{
-					printf("\n\t++ invalid record: truncated RR answer data");
+					printf("\n\t++ invalid record: RR value length stretches the answer beyond packet");
 					exit(1);
 				}
 				t.s_addr = *((unsigned long*)(ptr+cur_pos));
