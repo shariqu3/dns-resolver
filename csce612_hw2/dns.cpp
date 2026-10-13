@@ -110,10 +110,8 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	{
 		printf("------------ [questions] ----------\n");
 		while (itr--)
-		{
-			// 19.138.194.128.in-addr.arpa type 12 class 1
 			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, true);
-		}
+			// 19.138.194.128.in-addr.arpa type 12 class 1
 	}
 
 	// parse answers 
@@ -122,21 +120,21 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	{
 		printf("------------ [answers] ------------\n");
 		while (itr--)
-		{
-		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
 			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
-		}
+		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
 	}
 	// parse authority
-	itr = ntohs(res_header->n_answers);
+	itr = ntohs(res_header->n_authority);
 	if (itr)
 	{
+		//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
 		printf("------------ [authority] ----------\n");
-			//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
+		while(itr--)
+		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 	}
 
 	// parse additional 
-	itr = ntohs(res_header->n_answers);
+	itr = ntohs(res_header->n_additional);
 	if (itr)
 	{
 		printf("------------ [additional] ----------\n");
@@ -147,36 +145,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 
 int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question)
 {
-	// check compress
-	int cont_offset = -1;
-	bool first_name = true;
-	while (ptr[cur_pos] != 0)
-	{
-		if (ptr[cur_pos] >= 0xC0)
-		{
-			if (cont_offset == -1)
-				cont_offset = cur_pos + 2;
-			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
-			cur_pos = off;
-		}
-		else
-		{
-			int len = ptr[cur_pos];
-			unsigned char cpy = ptr[cur_pos + len+1];
-			ptr[cur_pos + len+1] = '\0';
-			if(first_name)
-				printf("%s", ptr+cur_pos);
-			else
-				printf(".%s", ptr+cur_pos);
-			ptr[cur_pos + len+1] = cpy;
-			cur_pos += len+1;
-			first_name = false;
-		}
-	}
-	cur_pos++;
-	if (cont_offset != -1)
-		cur_pos = cont_offset;
-
+	cur_pos = PrintDomainName(ptr, cur_pos);
 	if (question)
 	{
 		printf(" type %u class %u\n", ntohs(*((u_short*)(ptr+cur_pos))), ntohs(*((u_short*)(ptr+cur_pos+2))));
@@ -198,12 +167,51 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 				t.s_addr = *((unsigned long*)(ptr+cur_pos));
 				printf(" type %s %s TTL = %u\n", mp[ntohs(ans_header->type)].c_str(),  inet_ntoa(t), ntohl(ans_header->ttl));
 				break;
+			case DNS_CNAME:
+			case DNS_NS:
+				printf(" type %s ", mp[ntohs(ans_header->type)].c_str());
+				PrintDomainName(ptr, cur_pos);
+				printf(" TTL = % u\n", ntohl(ans_header->ttl));
+				break;
 			default: 
 				throw std::runtime_error("Invalid type");
 				break;
 		}
-		return cur_pos + ntohs(ans_header->len);
+		return cur_pos+ ntohs(ans_header->len);
 	}
+}
+
+int PrintDomainName(unsigned char* ptr, int cur_pos)
+{
+	int cont_offset = -1;
+	bool first_name = true;
+	while (ptr[cur_pos] != 0)
+	{
+		if (ptr[cur_pos] >= 0xC0)
+		{
+			if (cont_offset == -1)
+				cont_offset = cur_pos + 2;
+			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
+			cur_pos = off;
+		}
+		else
+		{
+			int len = ptr[cur_pos];
+			unsigned char cpy = ptr[cur_pos + len+1];
+			ptr[cur_pos + len+1] = '\0';
+			if (first_name)
+				printf("%s", ptr + cur_pos + 1);
+			else
+				printf(".%s", ptr + cur_pos+1);
+			ptr[cur_pos + len+1] = cpy;
+			cur_pos += len+1;
+			first_name = false;
+		}
+	}
+	cur_pos++;
+	if (cont_offset != -1)
+		cur_pos = cont_offset;
+	return cur_pos;
 }
 
 

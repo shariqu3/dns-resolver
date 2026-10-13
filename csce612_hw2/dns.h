@@ -71,3 +71,4 @@ bool IsIP(char* query);
 char* UDPCall(char* msg, int pkt_size, char* server, int &res_size);
 void DNSResponseParser(unsigned char* res, int pkt_size);
 int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question = false);
+int PrintDomainName(unsigned char* ptr, int cur_pos);

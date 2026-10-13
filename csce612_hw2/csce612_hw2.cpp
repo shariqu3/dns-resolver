@@ -9,8 +9,8 @@
 // [x] Build UDP socket mgmt
 // [ ] Build Response parser
 //      [x] DNS_A 1 /* name -> IP */
-//      [ ] DNS_NS 2 /* name server */
-//      [ ] DNS_CNAME 5 /* canonical name */
+//      [x] DNS_NS 2 /* name server */
+//      [x] DNS_CNAME 5 /* canonical name */
 //      [ ] DNS_PTR 12 /* IP -> name */
 // [ ] Build Response validator
 // [x] Add retransmission on failures with 10s timeout
