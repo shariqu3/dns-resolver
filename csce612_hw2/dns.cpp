@@ -105,44 +105,21 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 		exit(1);
 	}		
 
-	int itr = ntohs(res_header->n_questions);
-	if (itr)
-	{
-		printf("  ------------ [questions] ----------\n");
-		while (itr--)
-			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, true);
-			// 19.138.194.128.in-addr.arpa type 12 class 1
-	}
-
-	// parse answers 
-	itr = ntohs(res_header->n_answers);
-	if (itr)
-	{
-		printf("  ------------ [answers] ------------\n");
-		while (itr--)
-			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
-		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
-	}
-	// parse authority
-	itr = ntohs(res_header->n_authority);
-	if (itr)
-	{
-		//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
-		printf("  ------------ [authority] ----------\n");
-		while(itr--)
-		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
-	}
-
-	// parse additional 
-	itr = ntohs(res_header->n_additional);
-	if (itr)
-	{
-		printf("  ------------ [additional] ----------\n");
-		while(itr--)
-		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
-			//ns1.tamu.edu A 128.194.254.4 TTL = 28800
-	}
+	PrintSectionRecords("questions", ntohs(res_header->n_questions), cur_pos, res, mp);
+	PrintSectionRecords("answers", ntohs(res_header->n_answers), cur_pos, res, mp);
+	PrintSectionRecords("authority", ntohs(res_header->n_authority), cur_pos, res, mp);
+	PrintSectionRecords("additional", ntohs(res_header->n_additional), cur_pos, res, mp);
 	delete[] res;
+}
+
+void PrintSectionRecords(const char* section_name, int n_entries, int &cur_pos, unsigned char* res, std::map<int, std::string>&mp)
+{
+	if (n_entries == 0)
+		return;
+
+	printf("  ------------ [%s] ----------\n", section_name);
+	while(n_entries--)
+		cur_pos = PrintResourceRecord(res, cur_pos, mp, false);
 }
 
 int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question)
@@ -173,12 +150,13 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 			case DNS_CNAME:
 			case DNS_NS:
 			case DNS_PTR:
+			default: 
 				printf(" %s ", mp[ntohs(ans_header->type)].c_str());
 				PrintDomainName(ptr, cur_pos);
 				printf(" TTL = % u\n", ntohl(ans_header->ttl));
 				break;
 			
-			default: 
+				//printf("skipped\n");
 				break;
 		}
 		return cur_pos+ ntohs(ans_header->len);
@@ -246,7 +224,8 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		memset(&remote, 0, sizeof(remote));
 		remote.sin_family = AF_INET;
 		remote.sin_addr.s_addr = inet_addr(server);// server’s IP
-		remote.sin_port = htons(53); // DNS port on server
+		// TODO: Change this back to 53
+		remote.sin_port = htons(5300); // DNS port on server
 		if (sendto(sock, msg, pkt_size, 0, (struct sockaddr*)&remote, sizeof(remote)) == SOCKET_ERROR)
 			throw std::runtime_error("Error in sending from UDP socket");
 
