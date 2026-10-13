@@ -228,18 +228,19 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 	if (sock == INVALID_SOCKET)
 		ThrowWSAError("WSA error in assigning socket");
 
+	struct sockaddr_in local;
+	memset(&local, 0, sizeof(local));
+	local.sin_family = AF_INET;
+	local.sin_addr.s_addr = INADDR_ANY;
+	local.sin_port = htons(0);
+	if (bind(sock, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR)
+		ThrowWSAError("");
+
     while (count++ < MAX_ATTEMPTS)
 	{
 		printf("Attempt %d with %d bytes... ", count-1, pkt_size);
 		Timer t;
 		// send request to the server
-		struct sockaddr_in local;
-		memset(&local, 0, sizeof(local));
-		local.sin_family = AF_INET;
-		local.sin_addr.s_addr = INADDR_ANY;
-		local.sin_port = htons(0);
-		if (bind(sock, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR)
-			throw std::runtime_error("Error in bind UDP socket");
 		
 		struct sockaddr_in remote;
 		memset(&remote, 0, sizeof(remote));
