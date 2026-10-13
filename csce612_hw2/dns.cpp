@@ -101,9 +101,9 @@ void DNSResponseParser(unsigned char* res, int res_size)
 	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
 	int	cur_pos = sizeof(FixedDNSHeader);
 	printf("  TXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
-	if (ntohs(res_header->TXID) != ntohs(TXID))
+	if (ntohs(res_header->TXID) != TXID)
 	{
-		printf("  ++ invalid reply : TXID mismatch, sent 0x%04X, received 0x%04X", ntohs(TXID), ntohs(res_header->TXID));
+		printf("  ++ invalid reply : TXID mismatch, sent 0x%04X, received 0x%04X", TXID, ntohs(res_header->TXID));
 		exit(1);
 	}
 	int rcode = ntohs(res_header->flags) % 16;

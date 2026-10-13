@@ -38,7 +38,7 @@
 #define DNS_RA (1 << 7) /* recursion available */
 
 const int MAX_DNS_LEN = 512;
-const u_short TXID = -1;
+const u_short TXID = 73;
 
 void MakeReverseHost(std::string& s);
 void MakeDNSQuestion(char* buf, std::string& host);
