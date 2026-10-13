@@ -254,8 +254,8 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		fd_set fd;
 		FD_ZERO (&fd); // clear the set
 		FD_SET (sock, &fd); // add your socket to the set
-		const timeval* timeout = new timeval{10, 0};
-		int available = select (0, &fd, NULL, NULL, timeout);
+		timeval timeout{10, 0};
+		int available = select (0, &fd, NULL, NULL, &timeout);
 		if (available > 0)
 		{
 			sockaddr_in from;
