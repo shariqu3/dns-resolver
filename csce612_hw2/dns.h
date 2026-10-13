@@ -69,7 +69,7 @@ u_short len;
 
 bool IsIP(char* query);
 char* UDPCall(char* msg, int pkt_size, char* server, int &res_size);
-void DNSResponseParser(unsigned char* res, int pkt_size);
-int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question = false);
-int PrintDomainName(unsigned char* ptr, int cur_pos);
-void PrintSectionRecords(const char* section_name, int n_entries, int& cur_pos, unsigned char* res, std::map<int, std::string>& mp);
+void DNSResponseParser(unsigned char* res, int res_size);
+int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, int &res_size, bool question = false);
+int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size);
+void PrintSectionRecords(const char* section_name, int n_entries, int& cur_pos, unsigned char* res, std::map<int, std::string>& mp, int &res_size, bool question=false);

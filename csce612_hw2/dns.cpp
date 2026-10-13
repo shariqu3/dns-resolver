@@ -71,7 +71,7 @@ char* AskDnsQuery(char* host, char* server, int type, bool reverse_lookup)
     return res;
 }
 
-void DNSResponseParser(unsigned char* res, int pkt_size)
+void DNSResponseParser(unsigned char* res, int res_size)
 {		
 	std::map<int, std::string> mp;
 	mp[DNS_A] = "A";
@@ -93,6 +93,11 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	mp[DNS_MX] = "MX";
 	mp[DNS_TXT] = "TXT";
 
+	if (res_size < sizeof(FixedDNSHeader))
+	{
+		printf("++ invalid reply: packet smaller than fixed DNS header");
+		exit(1);
+	}
 	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
 	int	cur_pos = sizeof(FixedDNSHeader);
 	printf("  TXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
@@ -105,34 +110,53 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 		exit(1);
 	}		
 
-	PrintSectionRecords("questions", ntohs(res_header->n_questions), cur_pos, res, mp);
-	PrintSectionRecords("answers", ntohs(res_header->n_answers), cur_pos, res, mp);
-	PrintSectionRecords("authority", ntohs(res_header->n_authority), cur_pos, res, mp);
-	PrintSectionRecords("additional", ntohs(res_header->n_additional), cur_pos, res, mp);
+	PrintSectionRecords("questions", ntohs(res_header->n_questions), cur_pos, res, mp, res_size, true);
+	PrintSectionRecords("answers", ntohs(res_header->n_answers), cur_pos, res,mp, res_size);
+	PrintSectionRecords("authority", ntohs(res_header->n_authority), cur_pos, res, mp, res_size);
+	PrintSectionRecords("additional", ntohs(res_header->n_additional), cur_pos, res, mp, res_size);
 	delete[] res;
 }
 
-void PrintSectionRecords(const char* section_name, int n_entries, int &cur_pos, unsigned char* res, std::map<int, std::string>&mp)
+void PrintSectionRecords(const char* section_name, int n_entries, int &cur_pos, unsigned char* res, std::map<int, std::string>&mp, int &res_size, bool question)
 {
 	if (n_entries == 0)
 		return;
 
 	printf("  ------------ [%s] ----------\n", section_name);
-	while(n_entries--)
-		cur_pos = PrintResourceRecord(res, cur_pos, mp, false);
+	while (n_entries--)
+	{
+		// TODO: Check if cur_pos > res_size is handled in PrintResourceRecord
+		if (cur_pos == res_size)
+		{
+			printf("++invalid section : not enough records");
+			exit(1);
+		}
+		cur_pos = PrintResourceRecord(res, cur_pos, mp, res_size, question);
+	}
 }
 
-int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question)
+int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, int &res_size, bool question)
 {
+
 	printf("\t");
-	cur_pos = PrintDomainName(ptr, cur_pos);
+	cur_pos = PrintDomainName(ptr, cur_pos, res_size);
 	if (question)
 	{
+		if (cur_pos + 4 > res_size)
+		{
+			printf("++ invalid record: truncated question query");
+			exit(1);
+		}
 		printf(" type %u class %u\n", ntohs(*((u_short*)(ptr+cur_pos))), ntohs(*((u_short*)(ptr+cur_pos+2))));
 		return cur_pos + 4;
 	}
 	else
 	{
+		if (cur_pos + sizeof(DNSAnswerHeader) > res_size)
+		{
+			printf("++ invalid record: truncated RR answer header");
+			exit(1);
+		}
 		DNSAnswerHeader *ans_header = (DNSAnswerHeader*)(ptr + cur_pos);
 		cur_pos += sizeof(DNSAnswerHeader);
 		switch (ntohs(ans_header->type))
@@ -140,8 +164,8 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 			case DNS_A:	
 				if (ntohs(ans_header->len) != 4)
 				{
-					// TODO: Check if this needs to be displayed in different format
-					throw std::runtime_error("Invalid length for type A response");
+					printf("++ invalid record: type A record length is not 4");
+					exit(1);
 				}
 				struct in_addr t;
 				t.s_addr = *((unsigned long*)(ptr+cur_pos));
@@ -150,20 +174,20 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 			case DNS_CNAME:
 			case DNS_NS:
 			case DNS_PTR:
-			default: 
 				printf(" %s ", mp[ntohs(ans_header->type)].c_str());
-				PrintDomainName(ptr, cur_pos);
+				PrintDomainName(ptr, cur_pos, res_size);
 				printf(" TTL = % u\n", ntohl(ans_header->ttl));
 				break;
 			
-				//printf("skipped\n");
+			default: 
+				printf("skipped\n");
 				break;
 		}
 		return cur_pos+ ntohs(ans_header->len);
 	}
 }
 
-int PrintDomainName(unsigned char* ptr, int cur_pos)
+int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 {
 	int cont_offset = -1;
 	bool first_name = true;
@@ -175,10 +199,20 @@ int PrintDomainName(unsigned char* ptr, int cur_pos)
 				cont_offset = cur_pos + 2;
 			int off = ((ptr[cur_pos] & 0x3F) << 8) + ptr[cur_pos + 1];
 			cur_pos = off;
+			if (cur_pos >= res_size)
+			{
+				printf("++ invalid record: jump beyond packet boundary");
+				exit(1);
+			}
 		}
 		else
 		{
 			int len = ptr[cur_pos];
+			if (cur_pos + len >= res_size)
+			{
+				printf("++ invalid record: truncated name");
+				exit(1);
+			}
 			unsigned char cpy = ptr[cur_pos + len+1];
 			ptr[cur_pos + len+1] = '\0';
 			if (first_name)
@@ -204,7 +238,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 	int MAX_ATTEMPTS = 3;
 	SOCKET sock = socket (AF_INET, SOCK_DGRAM, 0);
 	if (sock == INVALID_SOCKET)
-		ThrowWSAError("WSA error in assigning socket");
+		ThrowWSAError();
 
 	struct sockaddr_in local;
 	memset(&local, 0, sizeof(local));
@@ -212,7 +246,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 	local.sin_addr.s_addr = INADDR_ANY;
 	local.sin_port = htons(0);
 	if (bind(sock, (struct sockaddr*)&local, sizeof(local)) == SOCKET_ERROR)
-		ThrowWSAError("");
+		ThrowWSAError();
 
     while (count++ < MAX_ATTEMPTS)
 	{
@@ -233,8 +267,8 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		fd_set fd;
 		FD_ZERO (&fd); // clear the set
 		FD_SET (sock, &fd); // add your socket to the set
-		const timeval* timeout = new timeval{10, 0};
-		int available = select (0, &fd, NULL, NULL, timeout);
+		const timeval timeout{10, 0};
+		int available = select (0, &fd, NULL, NULL, &timeout);
 		if (available > 0)
 		{
 			sockaddr_in from;
@@ -246,7 +280,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 				throw std::runtime_error("Response address doesn't match remote address");
 			res_size = bytes;
 			if (bytes == SOCKET_ERROR)
-				ThrowWSAError("WSA error in recvfrom");
+				ThrowWSAError();
 			if (bytes > MAX_DNS_LEN)
 				throw std::runtime_error("exceeding MAX_DNS_LEN on response");
 			res[bytes] = 0;
@@ -260,7 +294,7 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 				throw std::runtime_error("out of attempts");
 		}
 		else
-			ThrowWSAError("WSA error in select");
+			ThrowWSAError();
 	}
 	closesocket(sock);
 	return res;

@@ -7,7 +7,7 @@ void ThrowWSAError(const char* msg)
 	// NOTE: WSA Errors can be max of 5 digits
 	size_t len = strlen(msg) + 5 + 2;
 	char * buf = new char [len];
-	SafeSNPrintf(buf, len, "%s %d", msg, WSAGetLastError());
+		SafeSNPrintf(buf, len, "%s %d", msg, WSAGetLastError());
 	throw std::runtime_error(buf);
 }
 

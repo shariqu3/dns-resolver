@@ -25,15 +25,15 @@
 
 // Report: 
 // [ ] Handle additional errors  
-//      [ ] ++ invalid reply: packet smaller than fixed DNS header
-//      [ ] ++ invalid section: not enough records (e.g., declared 5 answers but only 3 found)
-//      [ ] ++ invalid record: jump beyond packet boundary
-//      [ ] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
-//      [ ] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
+//      [-] ++ invalid reply: packet smaller than fixed DNS header
+//      [-] ++ invalid section: not enough records (e.g., declared 5 answers but only 3 found)
+//      [-] ++ invalid record: jump beyond packet boundary
+//      [-] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
+//      [-] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
 //      [ ] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
 //      [ ] ++ invalid record: jump into fixed DNS header
 //      [ ] ++ invalid record: jump loop
-//      [ ] ++ invalid record: RR value length stretches the answer beyond packet
+//      [-] ++ invalid record: RR value length stretches the answer beyond packet
 //      [ ] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
 
 // Extra credit:
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
     }
     catch (std::runtime_error& e)
     {
-        printf("failed with %s", e.what());
+        printf("%s", e.what());
         return 1;
     }
 	return 0;

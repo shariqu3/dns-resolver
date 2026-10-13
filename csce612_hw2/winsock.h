@@ -22,4 +22,4 @@ public:
 
 
 void WSAInit();
-void ThrowWSAError(const char* msg);
+void ThrowWSAError(const char* msg = "socket error");
