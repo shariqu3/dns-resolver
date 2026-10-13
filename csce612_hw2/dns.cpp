@@ -138,6 +138,8 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	if (itr)
 	{
 		printf("------------ [additional] ----------\n");
+		while(itr--)
+		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 			//ns1.tamu.edu A 128.194.254.4 TTL = 28800
 	}
 	delete[] res;
@@ -169,12 +171,13 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 				break;
 			case DNS_CNAME:
 			case DNS_NS:
-				printf(" type %s ", mp[ntohs(ans_header->type)].c_str());
+			case DNS_PTR:
+				printf(" type %s INT: %u", mp[ntohs(ans_header->type)].c_str(), ntohs(ans_header->type));
 				PrintDomainName(ptr, cur_pos);
 				printf(" TTL = % u\n", ntohl(ans_header->ttl));
 				break;
+			
 			default: 
-				throw std::runtime_error("Invalid type");
 				break;
 		}
 		return cur_pos+ ntohs(ans_header->len);
@@ -254,10 +257,13 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		int available = select (0, &fd, NULL, NULL, timeout);
 		if (available > 0)
 		{
-			sockaddr from;
+			sockaddr_in from;
 			int from_len = sizeof(from);
 			// TODO: Do something with the returned from field
-			int bytes = recvfrom(sock, res, MAX_DNS_LEN, 0, &from, &from_len);
+			int bytes = recvfrom(sock, res, MAX_DNS_LEN, 0, (sockaddr *) & from, &from_len);
+			//printf("From address: %s Remote address: %s\n", inet_ntoa(from.sin_addr), inet_ntoa(remote.sin_addr));
+			if (from.sin_addr.s_addr != remote.sin_addr.s_addr)
+				throw std::runtime_error("Response address doesn't match remote address");
 			res_size = bytes;
 			if (bytes == SOCKET_ERROR)
 				ThrowWSAError("WSA error in recvfrom");
