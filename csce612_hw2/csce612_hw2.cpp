@@ -14,7 +14,7 @@
 //      [x] DNS_PTR 12 /* IP -> name */
 // [ ] Build Response validator
 // [x] Add retransmission on failures with 10s timeout
-// [ ] Print output
+// [x] Print output
 //      [x] Lookup : randomA.irl 
 //	    [x] Query : randomA.irl, type 1, TXID 0x8601
 //	    [x] Server : 128.194.135.82
@@ -22,7 +22,6 @@
 //      [x] Attempt 0 with 26 bytes... response in 1670 ms with 101 bytes
 //      [x] TXID 0xC101 flags 8183 questions 1 answers 0 authority 1 additional 0
 //      [x] failed with Rcode = 3
-//      [ ] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
 
 // Report: 
 // [ ] Handle additional errors  
@@ -35,6 +34,7 @@
 //      [ ] ++ invalid record: jump into fixed DNS header
 //      [ ] ++ invalid record: jump loop
 //      [ ] ++ invalid record: RR value length stretches the answer beyond packet
+//      [ ] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
 
 // Extra credit:
 //  [ ] Reverse engineer algorithm used by random8.irl's response

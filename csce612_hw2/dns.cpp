@@ -95,20 +95,20 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 
 	FixedDNSHeader* res_header = (FixedDNSHeader*) res;
 	int	cur_pos = sizeof(FixedDNSHeader);
-	printf("\tTXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
+	printf("  TXID 0x%04X, flags 0x%04X, questions %u, answers %u, authority %u, additional %u\n", ntohs(res_header->TXID), ntohs(res_header->flags), ntohs(res_header->n_questions), ntohs(res_header->n_answers), ntohs(res_header->n_authority), ntohs(res_header->n_additional));
 	int rcode = ntohs(res_header->flags) % 16;
 	if (!rcode)
-		printf("\tsucceeded with Rcode = %d\n", rcode);
+		printf("  succeeded with Rcode = %d\n", rcode);
 	else
 	{
-		printf("\tfailed with Rcode = %d", rcode);
+		printf("  failed with Rcode = %d", rcode);
 		exit(1);
 	}		
 
 	int itr = ntohs(res_header->n_questions);
 	if (itr)
 	{
-		printf("------------ [questions] ----------\n");
+		printf("  ------------ [questions] ----------\n");
 		while (itr--)
 			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, true);
 			// 19.138.194.128.in-addr.arpa type 12 class 1
@@ -118,7 +118,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	itr = ntohs(res_header->n_answers);
 	if (itr)
 	{
-		printf("------------ [answers] ------------\n");
+		printf("  ------------ [answers] ------------\n");
 		while (itr--)
 			cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 		//19.138.194.128.in-addr.arpa PTR mailbox.cs.tamu.edu TTL = 3600
@@ -128,7 +128,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	if (itr)
 	{
 		//194.128.in-addr.arpa NS ns3.tamu.edu TTL = 86399
-		printf("------------ [authority] ----------\n");
+		printf("  ------------ [authority] ----------\n");
 		while(itr--)
 		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 	}
@@ -137,7 +137,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 	itr = ntohs(res_header->n_additional);
 	if (itr)
 	{
-		printf("------------ [additional] ----------\n");
+		printf("  ------------ [additional] ----------\n");
 		while(itr--)
 		cur_pos = PrintResourceRecord((unsigned char *) res, cur_pos, mp, false);
 			//ns1.tamu.edu A 128.194.254.4 TTL = 28800
@@ -147,6 +147,7 @@ void DNSResponseParser(unsigned char* res, int pkt_size)
 
 int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::string> &mp, bool question)
 {
+	printf("\t");
 	cur_pos = PrintDomainName(ptr, cur_pos);
 	if (question)
 	{
@@ -167,12 +168,12 @@ int PrintResourceRecord(unsigned char* ptr, int cur_pos, std::map<int, std::stri
 				}
 				struct in_addr t;
 				t.s_addr = *((unsigned long*)(ptr+cur_pos));
-				printf(" type %s %s TTL = %u\n", mp[ntohs(ans_header->type)].c_str(),  inet_ntoa(t), ntohl(ans_header->ttl));
+				printf(" %s %s TTL = %u\n", mp[ntohs(ans_header->type)].c_str(),  inet_ntoa(t), ntohl(ans_header->ttl));
 				break;
 			case DNS_CNAME:
 			case DNS_NS:
 			case DNS_PTR:
-				printf(" type %s INT: %u", mp[ntohs(ans_header->type)].c_str(), ntohs(ans_header->type));
+				printf(" %s ", mp[ntohs(ans_header->type)].c_str());
 				PrintDomainName(ptr, cur_pos);
 				printf(" TTL = % u\n", ntohl(ans_header->ttl));
 				break;
@@ -244,7 +245,6 @@ char* UDPCall(char* msg, int pkt_size, char *server, int &res_size)
 		memset(&remote, 0, sizeof(remote));
 		remote.sin_family = AF_INET;
 		remote.sin_addr.s_addr = inet_addr(server);// server’s IP
-		// TODO: Change this to 53 after tesitng locally
 		remote.sin_port = htons(53); // DNS port on server
 		if (sendto(sock, msg, pkt_size, 0, (struct sockaddr*)&remote, sizeof(remote)) == SOCKET_ERROR)
 			throw std::runtime_error("Error in sending from UDP socket");
