@@ -30,16 +30,16 @@
 
 // Report: 
 // [ ] Handle additional errors  
-//      [-] ++ invalid reply: packet smaller than fixed DNS header
-//      [-] ++ invalid section: not enough records (e.g., declared 5 answers but only 3 found)
+//      [+] ++ invalid reply: packet smaller than fixed DNS header
+//      [+] ++ invalid section: not enough records (e.g., declared 5 answers but only 3 found)
 //      [-] ++ invalid record: jump beyond packet boundary
-//      [-] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
-//      [-] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
+//      [+] ++ invalid record: truncated name (e.g., “6 goog” and the packet ends)
+//      [+] ++ invalid record: truncated RR answer header (i.e., don’t have the full 10 bytes)
 //      [-] ++ invalid record: truncated jump offset (e.g., 0xC0 and the packet ends)
-//      [-] ++ invalid record: jump into fixed DNS header
-//      [ ] ++ invalid record: jump loop
+//      [+] ++ invalid record: jump into fixed DNS header
+//      [-] ++ invalid record: jump loop
 //      [-] ++ invalid record: RR value length stretches the answer beyond packet
-//      [-] ++ invalid reply: TXID mismatch, sent 0x0871, received 0x0872
+//      [+] ++ invalid reply: TXID mismatch sent 0xABCD received 0xPQRS
 
 // Extra credit:
 //  [ ] Reverse engineer algorithm used by random8.irl's response

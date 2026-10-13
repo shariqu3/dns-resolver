@@ -202,6 +202,7 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 {
 	int cont_offset = -1;
 	bool first_name = true;
+	bool visited[MAX_DNS_LEN] = { false };
 	while (ptr[cur_pos] != 0)
 	{
 		if (ptr[cur_pos] >= 0xC0)
@@ -225,6 +226,12 @@ int PrintDomainName(unsigned char* ptr, int cur_pos, int &res_size)
 				printf("\n\t++ invalid record: jump into fixed DNS header");
 				exit(1);
 			}
+			else if (visited[cur_pos])
+			{
+				printf("\n\t++ invalid record: jump loop");
+				exit(1);
+			}
+			visited[cur_pos] = true;
 		}
 		else
 		{
