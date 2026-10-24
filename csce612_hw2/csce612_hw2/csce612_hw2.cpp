@@ -42,7 +42,7 @@
 //      [+] ++ invalid reply: TXID mismatch sent 0xABCD received 0xPQRS
 
 // Extra credit:
-//  [ ] Reverse engineer algorithm used by random8.irl's response
+//  [x] Reverse engineer algorithm used by random8.irl's response
 
 #include "pch.h"
 #include <iostream>
@@ -51,8 +51,6 @@
 int main(int argc, char* argv[])
 {
     // 1. Input formatting
-    process();
-    return 1;
     if (argc != 3)
     {
         printf("Incorrect usage, correct usage:\n");

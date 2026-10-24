@@ -149,7 +149,6 @@
   <ItemGroup>
     <ClCompile Include="csce612_hw2.cpp" />
     <ClCompile Include="dns.cpp" />
-    <ClCompile Include="file_processor.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -162,7 +161,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="dns.h" />
-    <ClInclude Include="file_processor.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="test.h" />
     <ClInclude Include="util.h" />
